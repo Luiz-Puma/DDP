@@ -12,7 +12,7 @@ import logging
 
 
 # Create file logger
-def create_logger(rank=0, log_level=logging.INFO):
+def create_logger(log_file, rank=0, log_level=logging.INFO):
     logger = logging.getLogger(__name__)
     logger.setLevel(log_level if rank == 0 else 'ERROR')
     logger.handlers.clear()
@@ -21,7 +21,7 @@ def create_logger(rank=0, log_level=logging.INFO):
     console.setLevel(log_level if rank == 0 else 'ERROR')
     console.setFormatter(formatter)
     logger.addHandler(console)
-    file_handler = logging.FileHandler(filename='log.txt')
+    file_handler = logging.FileHandler(filename=log_file)
     file_handler.setLevel(log_level if rank == 0 else 'ERROR')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
@@ -63,7 +63,7 @@ class Trainer:
         self.report_rate = report_rate
         self.local_rank = local_rank
         self.max_grad_norm = max_grad_norm
-        self.logger = create_logger()
+        self.logger = create_logger(self.output_dir + '/log.txt')
 
         if self.local_rank == 0:
             os.makedirs(self.output_dir, exist_ok=True)
