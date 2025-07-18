@@ -8,6 +8,25 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from datasets import load_dataset
 import torch.distributed as dist
+import logging
+
+
+# Create file logger
+def create_logger(rank=0, log_level=logging.INFO):
+    logger = logging.getLogger(__name__)
+    logger.setLevel(log_level if rank == 0 else 'ERROR')
+    logger.handlers.clear()
+    formatter = logging.Formatter('%(asctime)s  %(levelname)5s  %(message)s')
+    console = logging.StreamHandler()
+    console.setLevel(log_level if rank == 0 else 'ERROR')
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    file_handler = logging.FileHandler(filename='log.txt')
+    file_handler.setLevel(log_level if rank == 0 else 'ERROR')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    return logger
 
 # Argument parsing function
 def parse_arguments():
@@ -44,6 +63,7 @@ class Trainer:
         self.report_rate = report_rate
         self.local_rank = local_rank
         self.max_grad_norm = max_grad_norm
+        self.logger = create_logger()
 
         if self.local_rank == 0:
             os.makedirs(self.output_dir, exist_ok=True)
@@ -53,7 +73,7 @@ class Trainer:
         if self.local_rank == 0:
             save_path = os.path.join(self.output_dir, f"checkpoint_epoch_{epoch}.pt")
             torch.save(self.model.state_dict(), save_path)
-            print(f"[GPU {self.local_rank}] Checkpoint saved at epoch {epoch} to {save_path}")
+            self.logger.info(f"[GPU {self.local_rank}] Checkpoint saved at epoch {epoch} to {save_path}")
 
     def train_step(self, batch):
         """Perform a single training step."""
@@ -79,7 +99,7 @@ class Trainer:
 
                 if step != 0 and step % self.report_rate == 0:
                     avg_loss = sum_loss / self.report_rate
-                    print(f"[GPU {self.local_rank}] | Epoch {epoch}/{self.num_epochs} |"
+                    self.logger.info(f"[GPU {self.local_rank}] | Epoch {epoch}/{self.num_epochs} |"
                           f"Step {step} | Loss: {avg_loss:.4f}")
 
                     # global report: reporting the average loss across all GPUs
@@ -88,7 +108,7 @@ class Trainer:
                     dist.reduce(avg_loss, dst=0, op=dist.ReduceOp.SUM)
                     if self.local_rank == 0:
                         all_gpus_avg_loss = avg_loss / self.world_size
-                        print(f"All_GPUs_Loss: {all_gpus_avg_loss.item():.4f}")
+                        self.logger.info(f"All_GPUs_Loss: {all_gpus_avg_loss.item():.4f}")
                     # reset the loss
                     sum_loss = 0.0
 
