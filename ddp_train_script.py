@@ -63,10 +63,10 @@ class Trainer:
         self.report_rate = report_rate
         self.local_rank = local_rank
         self.max_grad_norm = max_grad_norm
-        self.logger = create_logger(self.output_dir + '/log.txt')
 
         if self.local_rank == 0:
             os.makedirs(self.output_dir, exist_ok=True)
+        self.logger = create_logger(self.output_dir + '/log.txt')
 
     def save_checkpoint(self, epoch):
         """Save model checkpoint (only by the main process)."""
