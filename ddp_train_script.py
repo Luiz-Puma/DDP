@@ -92,7 +92,8 @@ class Trainer:
         for epoch in range(self.num_epochs):
             self.train_data.sampler.set_epoch(epoch)
             sum_loss = 0.0
-
+            
+            self.logger.info(f"[GPU {self.local_rank}] | Epoch {epoch}/{self.num_epochs}")
             for step, batch in enumerate(self.train_data):
                 loss = self.train_step(batch)
                 sum_loss += loss
