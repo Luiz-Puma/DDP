@@ -119,7 +119,7 @@ class Trainer:
 
 def prepare_dataset(batch_size):
     # Load a subset of the C4 dataset with a glob pattern for specific training files
-    dataset = load_dataset("allenai/c4", data_files=["multilingual/c4-af.tfrecord-00000-of-00064.json.gz"], trust_remote_code=True)
+    dataset = load_dataset("allenai/c4", data_files=["multilingual/c4-af.tfrecord-00000-of-00064.json.gz"])
 
     # Initialize tokenizer
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
