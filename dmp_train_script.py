@@ -184,7 +184,8 @@ def main():
     micro_batch_size = args.batch_size // args.chunks
     input_ids = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
     labels = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
-    mb_inputs = {"input_ids": input_ids, "labels": labels}
+    attention_mask = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
+    mb_inputs = {"input_ids": input_ids, "labels": labels, "attention_mask": attention_mask}
         
     pipe = pipeline(model, mb_args=(), mb_kwargs=mb_inputs, split_spec=split_spec)
     assert pipe.num_stages == world_size
