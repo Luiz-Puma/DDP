@@ -203,7 +203,7 @@ def main():
         local_rank=local_rank,
         rank=rank,
         world_size=world_size,
-        mode=stage_model,
+        model=stage_model,
         schedule=schedule,
         train_data=train_data_loader,
         optimizer=optimizer,
