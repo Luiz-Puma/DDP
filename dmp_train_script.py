@@ -120,7 +120,7 @@ class Trainer:
             if self.local_rank == 0 and epoch % self.save_every == 0:
                 self.save_checkpoint(epoch + 1)
 
-def prepare_dataset(batch_size):
+def prepare_dataset(batch_size, max_length):
     # Load a subset of the C4 dataset with a glob pattern for specific training files
     dataset = load_dataset("allenai/c4", data_files=["multilingual/c4-af.tfrecord-00000-of-00064.json.gz"])
 
@@ -139,7 +139,8 @@ def prepare_dataset(batch_size):
             tokenizer.pad_token = tokenizer.eos_token
 
         # Tokenize text data
-        encoding = tokenizer(texts, padding='max_length', truncation=True, return_tensors="pt")
+        encoding = tokenizer(texts, padding='max_length', max_length=max_length, 
+                             truncation=True, return_tensors="pt")
         encoding["labels"] = encoding["input_ids"].clone()  # Use `input_ids` as labels
 
         # Return tokenized input tensors
@@ -193,7 +194,7 @@ def main():
     schedule = ScheduleGPipe(stage, args.chunks)
 
     # Prepare the dataset and optimizer
-    train_data_loader = prepare_dataset(batch_size=args.batch_size)
+    train_data_loader = prepare_dataset(batch_size=args.batch_size, max_length=seq_length)
     optimizer = torch.optim.AdamW(stage_model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
     # Instantiate Trainer and start training
