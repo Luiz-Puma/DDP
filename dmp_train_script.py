@@ -165,7 +165,7 @@ def prepare_dataset(batch_size):
 def main():
     args = parse_arguments()
     local_rank=int(os.environ["LOCAL_RANK"])
-    rank=int(os.environ['RANK']),
+    rank=int(os.environ['RANK'])
     world_size=int(os.environ["WORLD_SIZE"])
     
     # setup distributed data parallel
