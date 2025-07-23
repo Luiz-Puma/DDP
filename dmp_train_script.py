@@ -80,11 +80,11 @@ class Trainer:
         """Perform a single training step."""
         self.model.train()
         self.optimizer.zero_grad()
-        batch = {k: v.to(self.local_rank) for k, v in batch.items() if k != 'labels' or self.rank == self.world_size - 1}
-        if self.rank == 0 or self.rank == self.world_size - 1:
-            outputs = self.schedule.step(**batch)
+        batch = {k: v.to(self.local_rank) for k, v in batch.items() if k != 'labels' or self.rank == (self.world_size - 1)}
+        if self.rank == 0:
+            self.schedule.step(**batch)
         else:
-            self.schedule.step()
+            outputs = self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
         loss = torch.tensor(0.0, device=self.local_rank)
