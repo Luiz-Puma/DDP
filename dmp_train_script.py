@@ -64,6 +64,7 @@ class Trainer:
         self.report_rate = report_rate
         self.local_rank = local_rank
         self.max_grad_norm = max_grad_norm
+        self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
         if self.local_rank == 0:
             os.makedirs(self.output_dir, exist_ok=True)
@@ -82,18 +83,15 @@ class Trainer:
         self.optimizer.zero_grad()
         batch = {k: v.to(self.local_rank) for k, v in batch.items()}
         if self.rank == 0:
-            self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'], target=batch['labels'])
-        #elif self.rank == self.world_size - 1:
-        #    outputs = self.schedule.step(target=batch['labels'])
+            self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         else:
             outputs = self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
         loss = torch.tensor(0.0, device=self.local_rank)
         if self.rank == self.world_size - 1:
-            for i in range(len(outputs)):
-                self.logger.info(f"{i} {outputs[i].shape}")
-            loss = outputs[0].detach()
+            logits = outputs[0]
+            loss = self.criterion(logits.view(-1, logits.size(-1)), batch['labels'].view(-1))
         dist.broadcast(loss, src=self.world_size - 1)
         return loss.item()
 
