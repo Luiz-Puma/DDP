@@ -88,10 +88,6 @@ class Trainer:
         elif self.rank == self.world_size - 1:
             losses = []
             outputs = self.schedule.step(target=batch['labels'], losses=losses)
-            logits = outputs[0]
-            self.logger.info(f"{logits.shape} {batch['labels'].shape}")
-            loss = ForCausalLMLoss(logits, batch['labels'], 50257)
-            self.logger.info(f"{loss}")
         else:
             self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
@@ -208,7 +204,7 @@ def main():
         loss = ForCausalLMLoss(logits, targets, model.config.vocab_size)
         return loss
     
-    schedule = ScheduleGPipe(stage, args.chunks)#, loss_fn=loss_fn)
+    schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
 
     # Prepare the dataset and optimizer
     train_data_loader = prepare_dataset(batch_size=args.batch_size)
