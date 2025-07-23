@@ -84,16 +84,15 @@ class Trainer:
         batch = {k: v.to(self.local_rank) for k, v in batch.items()}
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
+        elif self.rank == self.world_size - 1:
+            outputs = self.schedule.step(target=batch['labels'])
         else:
-            outputs = self.schedule.step()
-        loss = torch.tensor(0.0, device=self.local_rank)
-        if self.rank == self.world_size - 1:
-            logits = outputs[0]
-            loss = self.criterion(logits.view(-1, logits.size(-1)), batch['labels'].view(-1))
-            loss.backward()
-            loss = loss.detach()
+            self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
+        loss = torch.tensor(0.0, device=self.local_rank)
+        if self.rank == self.world_size - 1:
+            loss = outputs.loss.detach()
         dist.broadcast(loss, src=self.world_size - 1)
         return loss.item()
 
