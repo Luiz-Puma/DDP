@@ -91,6 +91,7 @@ class Trainer:
         self.optimizer.step()
         loss = torch.tensor(0.0, device=self.local_rank)
         if self.rank == self.world_size - 1:
+            self.logger.info(f"{type(outputs)} {len(outputs)} {type(outputs[0])}")
             loss = outputs.loss.detach()
         dist.broadcast(loss, src=self.world_size - 1)
         return loss.item()
