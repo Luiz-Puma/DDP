@@ -85,15 +85,15 @@ class Trainer:
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         elif self.rank == self.world_size - 1:
-            outputs = self.schedule.step(target=batch['labels'])
+            losses = []
+            outputs = self.schedule.step(target=batch['labels'], losses=losses)
         else:
             self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
         loss = torch.tensor(0.0, device=self.local_rank)
         if self.rank == self.world_size - 1:
-            for i, out in enumerate(outputs):
-                self.logger.info(f"{i} {out.shape}")
+            self.logger.info(f"{losses}")
             loss = outputs.loss.detach()
         dist.broadcast(loss, src=self.world_size - 1)
         return loss.item()
