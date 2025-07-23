@@ -83,21 +83,18 @@ class Trainer:
         self.model.train()
         self.optimizer.zero_grad()
         batch = {k: v.to(self.local_rank) for k, v in batch.items()}
+        losses = []
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         elif self.rank == self.world_size - 1:
-            losses = []
             outputs = self.schedule.step(target=batch['labels'], losses=losses)
         else:
             self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
-        loss = torch.tensor(0.0, device=self.local_rank)
         if self.rank == self.world_size - 1:
             self.logger.info(f"{losses}")
-            loss = outputs.loss.detach()
-        dist.broadcast(loss, src=self.world_size - 1)
-        return loss.item()
+        return losses
 
     def train(self):
         """Run the full training loop"""
@@ -201,7 +198,7 @@ def main():
     stage = pipe.build_stage(rank, device=torch.device(f"cuda:{local_rank}"))
     def loss_fn(outputs, targets):
         logits = outputs[0]
-        loss = ForCausalLMLoss(logits, targets, model.config.vocab_size)
+        loss = ForCausalLMLoss(logits, targets, 50257)
         return loss
     
     schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
