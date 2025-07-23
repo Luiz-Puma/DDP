@@ -83,11 +83,11 @@ class Trainer:
         batch = {k: v.to(self.local_rank) for k, v in batch.items()}
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
-        elif self.rank == self.world_size - 1:
-            outputs = self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'], 
-                                         labels=batch['labels'])
+        #elif self.rank == self.world_size - 1:
+        #    outputs = self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'], 
+        #                                 labels=batch['labels'])
         else:
-            self.schedule.step()
+            outputs = self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
         loss = torch.tensor(0.0, device=self.local_rank)
@@ -193,7 +193,7 @@ def main():
     input_ids = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
     labels = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
     attention_mask = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
-    mb_inputs = {"input_ids": input_ids, "labels": labels, "attention_mask": attention_mask}
+    mb_inputs = {"input_ids": input_ids, "attention_mask": attention_mask}#, "labels": labels}
         
     pipe = pipeline(model, mb_args=(), mb_kwargs=mb_inputs, split_spec=split_spec)
     assert pipe.num_stages == world_size
