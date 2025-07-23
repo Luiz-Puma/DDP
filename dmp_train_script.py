@@ -50,7 +50,7 @@ def ddp_setup():
 
 class Trainer:
     def __init__(self, local_rank, rank, world_size, model, schedule, train_data, optimizer, output_dir, num_epochs,
-                 save_every, report_rate, max_grad_norm):
+                 save_every, report_rate, max_grad_norm, logger):
 
         self.local_rank = local_rank
         self.rank = rank
@@ -69,7 +69,8 @@ class Trainer:
 
         if self.local_rank == 0:
             os.makedirs(self.output_dir, exist_ok=True)
-        self.logger = create_logger(self.output_dir + '/log.txt')
+        #self.logger = create_logger(self.output_dir + '/log.txt')
+        self.logger = logger
 
     def save_checkpoint(self, epoch):
         """Save model checkpoint (only by the main process)."""
@@ -198,10 +199,11 @@ def main():
     
     # Create schedule runtime
     stage = pipe.build_stage(rank, device=torch.device(f"cuda:{local_rank}"))
+    logger = create_logger(args.output_dir + '/log.txt')
     def loss_fn(outputs, targets):
         logits = outputs[0]
-        print(logits.shape)
-        print(targets.shape)
+        logger.info(logits.shape)
+        logger.info(targets.shape)
         loss = ForCausalLMLoss(logits, targets, model.config.vocab_size)
         return loss
     
@@ -224,7 +226,8 @@ def main():
         num_epochs=args.num_epochs,
         save_every=args.save_every,
         report_rate=args.report_rate,
-        max_grad_norm=args.max_grad_norm
+        max_grad_norm=args.max_grad_norm,
+        logger=logger
     )
     trainer.train()
 
