@@ -197,7 +197,7 @@ def main():
     stage = pipe.build_stage(rank, device=torch.device(f"cuda:{local_rank}"))
     def loss_fn(outputs, targets):
         logits = outputs[0]
-        loss = ForCausalLMLoss(logits, targets, 50257)
+        loss = ForCausalLMLoss(logits, targets, model.config.vocab_size)
         return loss
     
     schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
