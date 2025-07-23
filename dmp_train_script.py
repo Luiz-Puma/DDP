@@ -83,7 +83,7 @@ class Trainer:
         self.model.train()
         self.optimizer.zero_grad()
         batch = {k: v.to(self.local_rank) for k, v in batch.items()}
-        losses = []
+        losses = [10]
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         elif self.rank == self.world_size - 1:
@@ -93,7 +93,7 @@ class Trainer:
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
         self.logger.info(f"{losses}")
-        return losses
+        return losses[0]
 
     def train(self):
         """Run the full training loop"""
@@ -200,7 +200,7 @@ def main():
         loss = ForCausalLMLoss(logits, targets, 50257)
         return loss
     
-    schedule = ScheduleGPipe(stage, args.chunks)#, loss_fn=loss_fn)
+    schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
 
     # Prepare the dataset and optimizer
     train_data_loader = prepare_dataset(batch_size=args.batch_size)
