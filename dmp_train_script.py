@@ -90,7 +90,7 @@ class Trainer:
             outputs = self.schedule.step(target=batch['labels'], losses=losses)
             logits = outputs[0]
             self.logger.info(f"{logits.shape} {batch['labels'].shape}")
-            loss = ForCausalLMLoss(logits, batch['labels'], self.model.vocab_size)
+            loss = ForCausalLMLoss(logits, batch['labels'], 50257)
             self.logger.info(f"{loss}")
         else:
             self.schedule.step()
