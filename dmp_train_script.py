@@ -80,7 +80,7 @@ class Trainer:
         """Perform a single training step."""
         self.model.train()
         self.optimizer.zero_grad()
-        batch = {k: v.to(self.local_rank) for k, v in batch.items() if k != 'labels' or self.rank == (self.world_size - 1)}
+        batch = {k: v.to(self.local_rank) for k, v in batch.items()}
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         elif self.rank == self.world_size - 1:
