@@ -84,17 +84,22 @@ class Trainer:
         self.model.train()
         self.optimizer.zero_grad()
         batch = {k: v.to(self.local_rank) for k, v in batch.items()}
-        losses = [10]
+        losses = []
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         elif self.rank == self.world_size - 1:
-            outputs = self.schedule.step(target=batch['labels'], losses=losses)
+            self.schedule.step(target=batch['labels'], losses=losses)
         else:
             self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
-        self.logger.info(f"{losses}")
-        return losses[0]
+        loss = torch.tensor(0.0, device=self.local_rank)
+        if self.rank == self.world_size - 1:
+            self.logger.info(f"{losses}")
+            loss = losses[0]
+            loss = loss.detach()
+        dist.broadcast(loss, src=self.world_size - 1)
+        return loss.item()
 
     def train(self):
         """Run the full training loop"""
@@ -182,9 +187,6 @@ def main():
     
     # Split model
     seq_length = model.config.n_positions
-    decoders_per_rank = (model.config.n_layer + world_size - 1) // world_size
-    #split_spec = {f'transformer.h.{i * decoders_per_rank}': SplitPoint.BEGINNING 
-    #              for i in range(1, world_size)}
     split_spec = {'transformer.h.0': SplitPoint.BEGINNING, 
                   'transformer.ln_f': SplitPoint.BEGINNING,
                   'lm_head': SplitPoint.BEGINNING}
@@ -204,6 +206,7 @@ def main():
     logger = create_logger(args.output_dir + '/log.txt')
     def loss_fn(logits, labels):
         loss = ForCausalLMLoss(logits, labels, vocab_size)
+        logger.info(loss.shape)
         return loss
     
     schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
