@@ -98,6 +98,10 @@ class Trainer:
             
             self.logger.info(f"[GPU {self.local_rank}] | Epoch {epoch}/{self.num_epochs}")
             for step, batch in enumerate(self.train_data):
+                self.logger.info((f"Rank {self.rank}" 
+                                  f"; input_ids shape {batch['input_ids'].shape}"
+                                  f"; attention_mask shape {batch['attention_mask'].shape}"
+                                  f"; label shape {batch['labels'].shape}"))
                 loss = self.train_step(batch)
                 sum_loss += loss
 
@@ -120,7 +124,7 @@ class Trainer:
             if self.local_rank == 0 and epoch % self.save_every == 0:
                 self.save_checkpoint(epoch + 1)
 
-def prepare_dataset(batch_size, max_length):
+def prepare_dataset(batch_size):
     # Load a subset of the C4 dataset with a glob pattern for specific training files
     dataset = load_dataset("allenai/c4", data_files=["multilingual/c4-af.tfrecord-00000-of-00064.json.gz"])
 
@@ -139,8 +143,7 @@ def prepare_dataset(batch_size, max_length):
             tokenizer.pad_token = tokenizer.eos_token
 
         # Tokenize text data
-        encoding = tokenizer(texts, padding='max_length', max_length=max_length, 
-                             truncation=True, return_tensors="pt")
+        encoding = tokenizer(texts, padding='max_length', truncation=True, return_tensors="pt")
         encoding["labels"] = encoding["input_ids"].clone()  # Use `input_ids` as labels
 
         # Return tokenized input tensors
@@ -194,7 +197,7 @@ def main():
     schedule = ScheduleGPipe(stage, args.chunks)
 
     # Prepare the dataset and optimizer
-    train_data_loader = prepare_dataset(batch_size=args.batch_size, max_length=seq_length)
+    train_data_loader = prepare_dataset(batch_size=args.batch_size)
     optimizer = torch.optim.AdamW(stage_model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
     # Instantiate Trainer and start training
