@@ -201,7 +201,7 @@ def main():
         loss = ForCausalLMLoss(logits, targets, 50257)
         return loss
     
-    schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
+    schedule = ScheduleGPipe(stage, args.chunks)#, loss_fn=loss_fn)
 
     # Prepare the dataset and optimizer
     train_data_loader = prepare_dataset(batch_size=args.batch_size)
