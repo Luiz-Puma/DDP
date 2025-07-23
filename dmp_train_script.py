@@ -92,8 +92,7 @@ class Trainer:
             self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
-        if self.rank == self.world_size - 1:
-            self.logger.info(f"{losses}")
+        self.logger.info(f"{losses}")
         return losses
 
     def train(self):
