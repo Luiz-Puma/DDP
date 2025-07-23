@@ -84,7 +84,7 @@ class Trainer:
         if self.rank == 0:
             self.schedule.step(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'])
         elif self.rank == self.world_size - 1:
-            outputs = self.schedule.step(labels=batch['labels'])
+            outputs = self.schedule.step(input_ids=batch['input_ids'], labels=batch['labels'])
         else:
             self.schedule.step()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.max_grad_norm)
@@ -103,10 +103,11 @@ class Trainer:
             
             self.logger.info(f"[GPU {self.local_rank}] | Epoch {epoch}/{self.num_epochs}")
             for step, batch in enumerate(self.train_data):
-                self.logger.info((f"Rank {self.rank}" 
-                                  f"; input_ids shape {batch['input_ids'].shape}"
-                                  f"; attention_mask shape {batch['attention_mask'].shape}"
-                                  f"; label shape {batch['labels'].shape}"))
+                if self.rank == 0:
+                    self.logger.info((f"Rank {self.rank}" 
+                                      f"; input_ids shape {batch['input_ids'].shape}"
+                                      f"; attention_mask shape {batch['attention_mask'].shape}"
+                                      f"; label shape {batch['labels'].shape}"))
                 loss = self.train_step(batch)
                 sum_loss += loss
 
