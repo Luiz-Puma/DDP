@@ -103,11 +103,6 @@ class Trainer:
             
             self.logger.info(f"[GPU {self.local_rank}] | Epoch {epoch}/{self.num_epochs}")
             for step, batch in enumerate(self.train_data):
-                if self.rank == 0:
-                    self.logger.info((f"Rank {self.rank}" 
-                                      f"; input_ids shape {batch['input_ids'].shape}"
-                                      f"; attention_mask shape {batch['attention_mask'].shape}"
-                                      f"; label shape {batch['labels'].shape}"))
                 loss = self.train_step(batch)
                 sum_loss += loss
 
@@ -188,6 +183,7 @@ def main():
     decoders_per_rank = (model.config.n_layer + world_size - 1) // world_size
     split_spec = {f'transformer.h.{i * decoders_per_rank}': SplitPoint.BEGINNING 
                   for i in range(1, world_size)}
+    assert args.batch_size / args.chunks == 0
     micro_batch_size = args.batch_size // args.chunks
     input_ids = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
     attention_mask = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
