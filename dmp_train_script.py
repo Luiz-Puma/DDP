@@ -183,7 +183,7 @@ def main():
     decoders_per_rank = (model.config.n_layer + world_size - 1) // world_size
     split_spec = {f'transformer.h.{i * decoders_per_rank}': SplitPoint.BEGINNING 
                   for i in range(1, world_size)}
-    assert args.batch_size / args.chunks == 0
+    assert args.batch_size % args.chunks == 0
     micro_batch_size = args.batch_size // args.chunks
     input_ids = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
     attention_mask = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
