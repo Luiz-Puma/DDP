@@ -206,7 +206,7 @@ def main():
     logger = create_logger(args.output_dir + '/log.txt')
     def loss_fn(logits, labels):
         loss = ForCausalLMLoss(logits, labels, vocab_size)
-        logger.info(loss)
+        logger.info(f"rank {rank} loss {loss}")
         return loss
     
     schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
