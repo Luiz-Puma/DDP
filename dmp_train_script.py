@@ -181,8 +181,11 @@ def main():
     # Split model
     seq_length = model.config.n_positions
     decoders_per_rank = (model.config.n_layer + world_size - 1) // world_size
-    split_spec = {f'transformer.h.{i * decoders_per_rank}': SplitPoint.BEGINNING 
-                  for i in range(1, world_size)}
+    #split_spec = {f'transformer.h.{i * decoders_per_rank}': SplitPoint.BEGINNING 
+    #              for i in range(1, world_size)}
+    split_spec = {'transformer.h.0': SplitPoint.BEGINNING, 
+                  'transformer.ln_f': SplitPoint.BEGINNING,
+                  'lm_head': SplitPoint.BEGINNING}
     assert args.batch_size % args.chunks == 0
     micro_batch_size = args.batch_size // args.chunks
     input_ids = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
