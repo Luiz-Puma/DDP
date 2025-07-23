@@ -202,7 +202,7 @@ def main():
     logger = create_logger(args.output_dir + '/log.txt')
     def loss_fn(outputs, targets):
         logits = outputs[0]
-        logger.info(logits.shape)
+        logger.info(f"{type(outputs)} {len(outputs)}")
         logger.info(targets.shape)
         loss = ForCausalLMLoss(logits, targets, model.config.vocab_size)
         return loss
