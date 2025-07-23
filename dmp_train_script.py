@@ -177,7 +177,7 @@ def main():
     # Initialize model
     # model = AutoModelForCausalLM.from_pretrained("gpt2")
     config = AutoConfig.from_pretrained("gpt2")
-    model = AutoModelForCausalLM.from_config(config)    
+    model = AutoModelForCausalLM.from_config(config, use_cache=False)    
     
     # Split model
     seq_length = model.config.n_positions
