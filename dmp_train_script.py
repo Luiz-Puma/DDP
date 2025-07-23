@@ -189,8 +189,9 @@ def main():
                   'lm_head': SplitPoint.BEGINNING}
     assert args.batch_size % args.chunks == 0
     micro_batch_size = args.batch_size // args.chunks
-    input_ids = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
-    attention_mask = torch.randint(0, model.config.vocab_size, (micro_batch_size, seq_length))
+    vocab_size = model.config.vocab_size
+    input_ids = torch.randint(0, vocab_size, (micro_batch_size, seq_length))
+    attention_mask = torch.randint(0, vocab_size, (micro_batch_size, seq_length))
     mb_inputs = {"input_ids": input_ids, "attention_mask": attention_mask}
         
     pipe = pipeline(model, mb_args=(), mb_kwargs=mb_inputs, split_spec=split_spec)
@@ -200,11 +201,8 @@ def main():
     # Create schedule runtime
     stage = pipe.build_stage(rank, device=torch.device(f"cuda:{local_rank}"))
     logger = create_logger(args.output_dir + '/log.txt')
-    def loss_fn(outputs, targets):
-        logits = outputs[0]
-        logger.info(f"{type(outputs)} {len(outputs)}")
-        logger.info(targets.shape)
-        loss = ForCausalLMLoss(logits, targets, model.config.vocab_size)
+    def loss_fn(logits, labels):
+        loss = ForCausalLMLoss(logits, labels, vocab_size)
         return loss
     
     schedule = ScheduleGPipe(stage, args.chunks, loss_fn=loss_fn)
